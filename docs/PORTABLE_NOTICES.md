@@ -6,6 +6,8 @@ Python 及运行库授权文件保留在 runtime.zip 中（初始化后位于 ru
 
 包含 FastAPI、Uvicorn、faster-whisper、CTranslate2、PyAV、NumPy、NVIDIA cuBLAS/cuDNN 及其传递依赖。NVIDIA GPU 库的授权文件随相应包保留。未包含 GPU 驱动。
 
+CTranslate2 4.6.2 的 Windows wheel 未携带 MIT 许可证正文，本包在 licenses 中补充 `CTranslate2-4.6.2-LICENSE.txt`，来源为 [官方 v4.6.2 LICENSE](https://github.com/OpenNMT/CTranslate2/blob/v4.6.2/LICENSE)。升级 CTranslate2 时应同步核对许可证版本。
+
 FFmpeg 与 FFprobe 使用项目已验证的 Gyan Windows essentials 构建，原 LICENSE、README 在本目录。上游及构建信息：
 
 - https://www.python.org/

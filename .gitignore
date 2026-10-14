@@ -10,6 +10,7 @@ models/
 *.tsbuildinfo
 .tools/
 release/
+releases/
 .venv-macos/
 .media-tool.lock
 stop.request

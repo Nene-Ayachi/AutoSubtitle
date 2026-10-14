@@ -33,6 +33,7 @@ def test_windows_assembly_uses_shared_launcher_and_release(tmp_path, monkeypatch
         'scripts/common/launcher.py': 'shared launcher',
         '.tools/ffmpeg/bin/ffmpeg.exe': 'fixture', '.tools/ffmpeg/bin/ffprobe.exe': 'fixture',
         'docs/PORTABLE_QUICKSTART.md': 'usage', 'docs/PORTABLE_NOTICES.md': 'licenses',
+        'docs/licenses/CTranslate2-4.6.2-LICENSE.txt': 'CTranslate2 MIT license',
     }.items():
         path = root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -55,4 +56,23 @@ def test_windows_assembly_uses_shared_launcher_and_release(tmp_path, monkeypatch
         assert package.read(prefix + 'launcher.py') == b'shared launcher'
         assert package.read(prefix + 'Start-MediaTool.cmd') == b'windows startup'
         assert package.read(prefix + 'runtime.zip')
+        assert package.read(prefix + 'licenses/CTranslate2-4.6.2-LICENSE.txt') == b'CTranslate2 MIT license'
         assert not any(name.endswith('.command') for name in package.namelist())
+
+
+@pytest.mark.parametrize('inside_workspace', [True, False])
+def test_windows_verifier_rejects_unsafe_cache_before_cleanup(tmp_path, monkeypatch, inside_workspace):
+    main = runpy.run_path(str(ROOT / 'scripts/windows/verify_portable.py'))['main']
+    work = tmp_path / 'verification'
+    work.mkdir()
+    sentinel = work / 'keep.txt'
+    sentinel.write_text('existing report')
+    cache = work / 'models' if inside_workspace else tmp_path / 'missing-models'
+    if inside_workspace:
+        cache.mkdir()
+    main.__globals__['WORK'] = work
+    monkeypatch.setattr(sys, 'platform', 'win32')
+    monkeypatch.setattr(sys, 'argv', ['verify_portable.py', '--model-cache', str(cache)])
+    with pytest.raises(ValueError, match='Model cache must exist outside'):
+        main()
+    assert sentinel.read_text() == 'existing report'

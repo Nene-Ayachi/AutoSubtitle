@@ -82,6 +82,8 @@ def main():
         shutil.copyfile(ROOT / '.tools' / 'ffmpeg' / 'bin' / name, stage / 'tools' / name)
     licenses = stage / 'licenses'
     licenses.mkdir()
+    # The pinned Windows CTranslate2 wheel declares MIT but omits its text.
+    shutil.copyfile(ROOT / 'docs/licenses/CTranslate2-4.6.2-LICENSE.txt', licenses / 'CTranslate2-4.6.2-LICENSE.txt')
     modules = ROOT / 'frontend' / 'node_modules'
     for source in modules.rglob('LICENSE*'):
         if source.is_file():

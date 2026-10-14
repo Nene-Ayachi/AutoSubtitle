@@ -1,5 +1,22 @@
 # 验证记录
 
+## 当前 Windows 版本（2026-10-14 开始，跨日完成）
+
+基线 `c96121c266f3fdd2a7567c8450268b8e851515a1` 的应用源码已在 Windows 11 build 26200 / RTX 5090 D v2（24455 MiB，驱动 617.42）完成原生构建、本机隔离运行及离线功能验证。本轮构建补充 CTranslate2 许可证，验证脚本增加 SHA256、迁移前数据保留及离线模型缓存保护检查。
+
+- 依赖：Python 3.12.15；faster-whisper 1.2.1 / CTranslate2 4.6.2 / PyAV 16.0.1；httpx 0.28.1 + socksio 1.0.0；cuBLAS 12.8.4.1 / cuDNN 9.10.2.21；Node 24.14.1；FFmpeg 9.0.2。新增依赖后重新封装运行时，未沿用旧版本缓存；之后仅补许可证时复用本轮运行时。
+- 回归：93 passed / 8 skipped；7 项为 macOS 专项，真实 CUDA 取消项另行启用后 1 passed。前端生产构建和开发/包内 `pip check` 通过。
+- 实际成品：隔离 PATH/PYTHONPATH、中文空格路径解压、目录迁移后重建运行时、迁移前写入的数据和模型标记保留、HTTP/JS、端口冲突、重复启动、正常停止与 session 清理通过。实际 Start/Stop.cmd 及重启通过，未打开浏览器 UI。
+- 使用已有测试模型缓存离线完成合成语音识别：9.702676 秒素材，small CPU/int8 耗时 1.582 秒、RTF 0.163；CUDA/float16 耗时 1.072 秒、RTF 0.110。耗时沿用应用指标，不包含模型加载/下载；只代表本机短合成素材。
+- 字幕编辑、TXT/SRT、libx264 / h264_nvenc / hevc_nvenc MP4、MKV、视频取消与重试、原媒体/编辑结果保留通过。模型权重只在测试副本内使用，正式 ZIP 不含模型。
+- ZIP：`release/MediaTool-Portable-Windows-x64.zip`，1,507,154,684 字节；SHA256 `f44351d5b254932d8e3844feaab727c225e1b8ef0e68ecd73c472aa70b20aa0b`。核对应用/前端字节、内嵌 runtime 哈希以及主要第三方许可证通过。
+
+本次 `--download` 分别尝试 Xet 和普通 HTTP：配置/词表获取成功，权重传输未完成，随后停止测试。最终成功报告采用 `--model-cache` 且 `allow_download=false`，不能作为首次下载成功证据。干净机器、自动打开浏览器 UI 和目标笔记本性能尚未验收。
+
+证据索引见 [DONE](docs/DONE.md)，剩余验收见 [TODO](docs/TODO.md)。最终详细报告为 `.test-work/portable-verification/report.json`；脱敏摘要为 `release/MediaTool-Portable-Windows-x64.validation.json`。
+
+## 历史验证
+
 日期：2026-10-08。开发机 Windows 11 / RTX 5090 D v2，24455 MiB 显存。**不代表 RTX 5060 Laptop 8GB 的性能结果。**
 
 ## 实际通过

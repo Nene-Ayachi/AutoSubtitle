@@ -1,5 +1,6 @@
 """Relocate and exercise the actual release with no developer PATH/PYTHONPATH."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -88,35 +89,51 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--download', action='store_true', help='Explicitly download small into the isolated validation bundle')
     parser.add_argument('--skip-inference', action='store_true')
+    parser.add_argument('--model-cache', type=Path, help='Copy an existing test model cache for offline inference validation')
     args = parser.parse_args()
     if sys.platform != 'win32':
         raise RuntimeError('Verify the Windows portable bundle on Windows x64')
+    if args.model_cache:
+        args.model_cache = args.model_cache.resolve()
+        if not args.model_cache.is_dir() or args.model_cache.is_relative_to(WORK.resolve()):
+            raise ValueError('Model cache must exist outside the verification workspace that will be recreated')
     if WORK.exists():
         if not WORK.resolve().is_relative_to((ROOT / '.test-work').resolve()):
             raise RuntimeError('Unsafe verification cleanup path')
         shutil.rmtree(WORK)
     WORK.mkdir(parents=True)
     archive = ROOT / 'release' / 'MediaTool-Portable-Windows-x64.zip'
+    with archive.open('rb') as stream:
+        archive_hash = hashlib.file_digest(stream, 'sha256').hexdigest()
+    expected_hash = archive.with_suffix('.zip.sha256').read_text(encoding='ascii').split()[0]
+    assert archive_hash == expected_hash, 'Release SHA256 mismatch'
     print('Extracting actual release...', flush=True)
     with zipfile.ZipFile(archive) as zip_file:
         zip_file.extractall(WORK / '首次解压 空格')
     initial = WORK / '首次解压 空格' / 'MediaTool-Portable-Windows-x64'
     first = check_runtime(initial)
+    (initial / 'models' / 'relocation-check.txt').write_text('preserve cache', encoding='utf-8')
+    (initial / 'data' / 'relocation-check.txt').write_text('preserve data', encoding='utf-8')
     relocated = WORK / '移动后 中文空格' / 'Media Tool'
     relocated.parent.mkdir()
     # Both resolved targets are inside the explicit verification workspace.
     assert initial.resolve().is_relative_to(WORK.resolve()) and relocated.resolve().is_relative_to(WORK.resolve())
     shutil.move(str(initial), str(relocated))
-    (relocated / 'models' / 'relocation-check.txt').write_text('preserve cache', encoding='utf-8')
     second = check_runtime(relocated)
     assert (relocated / 'models' / 'relocation-check.txt').read_text() == 'preserve cache'
+    assert (relocated / 'data' / 'relocation-check.txt').read_text() == 'preserve data'
+    if args.model_cache:
+        shutil.copytree(args.model_cache, relocated / 'models', dirs_exist_ok=True)
     print('Private runtime and folder relocation passed.', flush=True)
     blocker = socket.socket()
     blocker.bind(('127.0.0.1', 16765))
     blocker.listen(1)
     log_path = WORK / 'server.log'
     process = None
-    report = {'first_runtime': first, 'relocated_runtime': second}
+    report = {'archive_sha256': archive_hash, 'skip_inference': args.skip_inference,
+              'seeded_model_cache': bool(args.model_cache), 'allow_download': args.download,
+              'first_runtime': first, 'relocated_runtime': second,
+              'checks': ['archive_sha256', 'private_runtime', 'relocation', 'model_and_data_preservation']}
     try:
         with log_path.open('wb') as log:
             process = subprocess.Popen([str(POWERSHELL), '-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass',
@@ -147,6 +164,7 @@ def main():
             assert duplicate.returncode == 0 and 'already running' in duplicate.stdout
             hw = request(url, 'api/system/info')
             report['hardware'] = hw
+            report['checks'] += ['http_and_js', 'port_conflict', 'duplicate_start']
             if not args.skip_inference:
                 source = ROOT / '.test-work' / '中文 视频 [test].mp4'
                 if not source.exists():
@@ -192,10 +210,14 @@ def main():
                 retry = request(url, prefix + '/export/video', {})
                 assert wait_task(url, retry['id'])['status'] == 'completed'
                 report['metrics'] = metrics
+                report['checks'] += ['transcription_' + device for device in metrics]
+                report['checks'] += ['subtitle_edit', 'txt', 'srt', 'mp4', 'mkv', 'video_cancel', 'video_retry']
                 print('CPU/CUDA recognition, edits, TXT/SRT, MP4/MKV and cancel/retry passed.', flush=True)
             (relocated / 'stop.request').touch()
             assert process.wait(timeout=30) == 0
         assert not list((relocated / 'data').glob('session-*'))
+        assert (relocated / 'data' / 'relocation-check.txt').read_text() == 'preserve data'
+        report['checks'] += ['normal_stop', 'session_cleanup', 'persistent_data_preserved']
         report['passed'] = True
         (WORK / 'report.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
         print('Portable verification passed. Report:', WORK / 'report.json', flush=True)

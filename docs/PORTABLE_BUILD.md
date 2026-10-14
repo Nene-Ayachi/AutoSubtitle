@@ -84,6 +84,12 @@ conda run --no-capture-output -n media-tool python scripts/windows/verify_portab
 
 Windows 验证报告位于 `.test-work/portable-verification/report.json`。完整模式包括 CPU/可用 CUDA 识别、编辑、TXT/SRT、可用编码器 MP4、MKV、取消和重试。
 
+验证器会先核对 ZIP 的 `.sha256`，并在迁移前写入模型/数据标记，检查迁移及退出后的保留情况。每次运行会重建 `.test-work/portable-verification`；需要保留上一轮报告时先复制到该目录之外。
+
+若网络环境中 Hugging Face 配置文件可下载、但 Xet 权重传输持续无进展，可仅在当前验证 PowerShell 设置 `$env:HF_HUB_DISABLE_XET = '1'`，再启动完整验证，改用普通 HTTP 下载。已有后台进程需要先正常停止；该环境变量不会改变已启动的进程。报告中应明确记录下载方式，不能把测试环境下的 HTTP 下载成功写成所有代理下的 Xet 下载已验收。
+
+如已有完整 CTranslate2 small 测试缓存，可使用 `--model-cache <缓存目录>` 替代 `--download`，复制到测试包后执行离线识别验收。源缓存必须位于 `.test-work/portable-verification` 外；源目录保持不变。此模式会在报告中标记 `seeded_model_cache`，不能作为首次联网下载已通过的证据。
+
 Windows 成品首次启动会从包内 runtime.zip 初始化私有运行时；移动整个包后重新初始化运行时并保留 models/data。保留 runtime.zip，不要单独搬动启动脚本。使用 `Start-MediaTool.cmd` 和 `Stop-MediaTool.cmd`。
 
 ## macOS Apple Silicon ZIP

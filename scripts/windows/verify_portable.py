@@ -13,9 +13,9 @@ import urllib.request
 import uuid
 import zipfile
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 WORK = ROOT / '.test-work' / 'portable-verification'
-SYSTEM = Path(os.environ['SystemRoot'])
+SYSTEM = Path(os.environ.get('SystemRoot', 'C:/Windows'))
 POWERSHELL = SYSTEM / 'System32' / 'WindowsPowerShell' / 'v1.0' / 'powershell.exe'
 
 
@@ -89,12 +89,14 @@ def main():
     parser.add_argument('--download', action='store_true', help='Explicitly download small into the isolated validation bundle')
     parser.add_argument('--skip-inference', action='store_true')
     args = parser.parse_args()
+    if sys.platform != 'win32':
+        raise RuntimeError('Verify the Windows portable bundle on Windows x64')
     if WORK.exists():
         if not WORK.resolve().is_relative_to((ROOT / '.test-work').resolve()):
             raise RuntimeError('Unsafe verification cleanup path')
         shutil.rmtree(WORK)
     WORK.mkdir(parents=True)
-    archive = ROOT / 'releases' / 'MediaTool-Portable-Windows-x64.zip'
+    archive = ROOT / 'release' / 'MediaTool-Portable-Windows-x64.zip'
     print('Extracting actual release...', flush=True)
     with zipfile.ZipFile(archive) as zip_file:
         zip_file.extractall(WORK / '首次解压 空格')

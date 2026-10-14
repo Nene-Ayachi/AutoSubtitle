@@ -10,7 +10,7 @@ import subprocess
 import sys
 import zipfile
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 BUILD = ROOT / '.tools' / 'portable-build'
 NAME = 'MediaTool-Portable-Windows-x64'
 
@@ -56,7 +56,7 @@ def main():
     if sys.platform != 'win32' or sys.maxsize <= 2**32:
         raise RuntimeError('Build on Windows x64 in the media-tool environment')
     if Path(sys.prefix).name != 'media-tool':
-        raise RuntimeError('Use conda run -n media-tool python scripts/build_portable.py')
+        raise RuntimeError('Use conda run -n media-tool python scripts/windows/build_portable.py')
     BUILD.mkdir(parents=True, exist_ok=True)
     sys.path.insert(0, str(BUILD / 'pack-tools'))
     import conda_pack
@@ -73,9 +73,10 @@ def main():
     shutil.copytree(ROOT / 'backend' / 'app', stage / 'backend' / 'app', ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
     shutil.copytree(ROOT / 'frontend' / 'dist', stage / 'web')
     shutil.copyfile(runtime_archive, stage / 'runtime.zip')
-    for source in (ROOT / 'scripts' / 'portable').iterdir():
+    for source in (ROOT / 'scripts/windows/portable').iterdir():
         if source.is_file():
             shutil.copyfile(source, stage / source.name)
+    shutil.copyfile(ROOT / 'scripts/common/launcher.py', stage / 'launcher.py')
     (stage / 'tools').mkdir()
     for name in ('ffmpeg.exe', 'ffprobe.exe'):
         shutil.copyfile(ROOT / '.tools' / 'ffmpeg' / 'bin' / name, stage / 'tools' / name)
@@ -100,7 +101,7 @@ def main():
     manifest = {'format': 1, 'python': sys.version.split()[0], 'platform': 'Windows x64',
                 'runtime_sha256': digest(runtime_archive), 'includes_models': args.include_models}
     (stage / 'bundle-manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
-    destination = ROOT / 'releases' / f'{NAME}.zip'
+    destination = ROOT / 'release' / f'{NAME}.zip'
     destination.parent.mkdir(exist_ok=True)
     temporary = destination.with_suffix('.building.zip')
     print('Creating final distribution...', flush=True)

@@ -1,10 +1,12 @@
 # Media Tool
 
-新增 Apple Silicon macOS 源码安装支持：首次运行 `bash Setup-MediaTool.command`，之后双击 `Start-MediaTool.command`。使用原生 ARM CPU 识别，并支持探测可用的 VideoToolbox 视频编码；不依赖 Miniforge/nvm。安装、限制及 Mac 实机验证清单见 [macOS 说明](docs/MACOS.md)。目前尚未发布独立 macOS 便携包。
+新增 Apple Silicon macOS 源码安装支持：首次运行 `bash scripts/macos/Setup-MediaTool.command`，之后双击 `scripts/macos/Start-MediaTool.command`。支持通过 MLX 使用 Metal GPU 识别，Metal 不可用时自动选择 ARM CPU，并支持探测可用的 VideoToolbox 视频编码；不依赖 Miniforge/nvm。安装、限制及 Mac 实机验证清单见 [macOS 说明](docs/MACOS.md)。支持构建 Apple Silicon 解压即用 ZIP（macOS 14+），见 [便携版构建说明](docs/PORTABLE_BUILD.md#macos-apple-silicon-zip)。
+
+便携版首次使用请双击 `首次信任并启动.command`，核实目录和来源后输入 `TRUST`；以后使用 `Start-MediaTool.command`。这仅初始化当前包的本地信任，不等于 Apple 公证。
 
 上传、排队、音频提取、识别、字幕生成和视频导出支持主动取消；模型下载/加载及当前 GPU 步骤采用安全等待，不假装立即终止。统一 API、阶段限制和验证见 [全流程取消说明](docs/TASK_CANCELLATION.md)。
 
-已有 Windows x64 便携版：解压 `releases/MediaTool-Portable-Windows-x64.zip` 后双击 `Start-MediaTool.cmd`，无需安装 Miniforge、Python、Node/nvm 或 FFmpeg。默认包不含模型，首次识别联网下载。使用方式见 [便携版说明](docs/PORTABLE_QUICKSTART.md)，重新制包及验证见 [构建说明](docs/PORTABLE_BUILD.md)。
+已有 Windows x64 便携版：解压 `release/MediaTool-Portable-Windows-x64.zip` 后双击 `Start-MediaTool.cmd`，无需安装 Miniforge、Python、Node/nvm 或 FFmpeg。默认包不含模型，首次识别联网下载。使用方式见 [便携版说明](docs/PORTABLE_QUICKSTART.md)，重新制包及验证见 [构建说明](docs/PORTABLE_BUILD.md)。
 
 视频导出支持主动取消：导出时点击“取消导出”，等待进程退出和临时文件清理后可重新导出，字幕校对内容保持。MP4 烧录和 MKV 外挂封装共用此机制。API、状态和测试详情见 [视频导出取消说明](docs/VIDEO_EXPORT_CANCEL.md)。
 
@@ -17,7 +19,10 @@ Windows 本地 AI 字幕与转写工具。导入音视频 → 本地 faster-whis
 - `backend/app/services/`：媒体探测、硬件检测、推理、字幕规则和视频导出。
 - `backend/app/core.py`：内存任务状态和单工作线程，不启用多进程。
 - `backend/tests/`：文本、时间轴、切分、任务和编辑导出的测试。
-- `scripts/`：PowerShell 启动入口。
+- `scripts/windows/`：Windows 开发启动、FFmpeg 安装、打包和验证。
+- `scripts/macos/`：macOS 源码安装/启动、打包和验证；根目录不再放 `.command`。
+- `scripts/common/`：两个平台共用的便携启动器。
+- `release/`：两个平台的 ZIP、SHA256 和验证报告（不提交 Git）。
 
 上传文件保存在 `%LOCALAPPDATA%/media-tool/session-*`；模型缓存默认保存在项目根目录的 `models/`（本项目为 `F:\projects\AutoSubtitle\models`），已加入 Git 忽略。路径根据 config.py 所在位置确定，不受启动时工作目录影响；可通过 `MEDIA_TOOL_MODELS` 显式覆盖。正常关闭会清理本次媒体与导出文件，模型保留；异常退出遗留 session 目录可在应用关闭后手动删除。重启不会恢复任务或编辑结果，关闭前请导出文件。
 
@@ -63,7 +68,7 @@ conda activate media-tool
 需要同时有 FFmpeg、FFprobe，以及 libass 字幕滤镜、libx264。推荐使用项目内独立构建，避免旧 Conda 的 FFmpeg 版本和 DLL 脚本兼容问题：
 
 ```powershell
-.\scripts\install-ffmpeg.ps1
+.\scripts\windows\install-ffmpeg.ps1
 .\.tools\ffmpeg\bin\ffmpeg.exe -version
 .\.tools\ffmpeg\bin\ffprobe.exe -version
 .\.tools\ffmpeg\bin\ffmpeg.exe -filters | Select-String subtitles
@@ -87,7 +92,7 @@ python -c "import app; import ctranslate2 as ct; print(ct.__version__); print(ct
 
 最终必须实际识别验证 cuBLAS/cuDNN 和模型兼容性。检测精度成功并不保证模型运行成功；加载失败会报告错误，不静默切换模型。无 CUDA 可选 CPU + int8。NVENC 通过实际编码单帧探测，不只检查编码器列表。
 
-默认均衡 large-v3-turbo/int8_float16，CPU 自动使用 int8；快速 small/int8；高质量 large-v3/float16。若自动精度的预设不受运行时支持，会选择实际支持的精度，并在日志及识别完成信息中提示，模型保持不变。手动选择不支持的精度则报错。一个模型、一项任务、不使用批量推理。首次使用所选模型需勾选允许下载，下载后可以离线处理；启动不下载模型。PyAV 固定 16.0.1，以避免新版本音频解码 API 与 faster-whisper 1.2.1 不兼容。
+默认均衡 large-v3-turbo/int8_float16，Apple Silicon Metal 自动使用 float16，CPU 自动使用 int8；快速 small/int8；高质量 large-v3/float16。若自动精度的预设不受运行时支持，会选择实际支持的精度，并在日志及识别完成信息中提示，模型保持不变。手动选择不支持的精度则报错。一个模型、一项任务、不使用批量推理。首次使用所选模型需勾选允许下载，下载后可以离线处理；启动不下载模型。PyAV 固定 16.0.1，以避免新版本音频解码 API 与 faster-whisper 1.2.1 不兼容。
 
 ## 启动
 
@@ -107,7 +112,7 @@ cd frontend
 npm run dev
 ```
 
-访问 http://127.0.0.1:5173；API 文档 http://127.0.0.1:8000/docs。也可使用 `scripts/start-backend.ps1` 和 `scripts/start-frontend.ps1`。不使用 uvicorn reload 或多 worker，以免重复加载模型。
+访问 http://127.0.0.1:5173；API 文档 http://127.0.0.1:8000/docs。也可使用 `scripts/windows/start-backend.ps1` 和 `scripts/windows/start-frontend.ps1`。不使用 uvicorn reload 或多 worker，以免重复加载模型。
 
 ## 操作与测试
 
@@ -142,5 +147,7 @@ npm run build
 ## 实测记录
 
 见 [VALIDATION.md](VALIDATION.md)，严格区分自动化测试、真实编码/识别验证与目标硬件尚待测试项。
+
+工程进展见 [已办事项](docs/DONE.md) 与 [待办事项](docs/TODO.md)；文档维护约定见 [docs/AGENTS.md](docs/AGENTS.md)，双平台打包方法见 [构建指南](docs/PORTABLE_BUILD.md)。
 
 字幕断句现在使用语言规则与候选评分的动态规划，参数位于 `config.py` 的 `SUBTITLE_POLICIES`，不增加 NLP/LLM 依赖。原始片段和词时间戳保留在任务内存中，可以调用 `POST /api/tasks/{task_id}/subtitles/resplit` 无需重新识别地切分；人工编辑后拒绝覆盖。算法说明、回退策略、语言参数和六组实际新旧输出见 [字幕断句对比](docs/SUBTITLE_SPLITTING.md)。模型/VAD/词时间戳参数没有改变。

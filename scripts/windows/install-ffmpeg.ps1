@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $toolRoot = Join-Path $projectRoot '.tools\ffmpeg'
 $binRoot = Join-Path $toolRoot 'bin'
 if (Test-Path (Join-Path $binRoot 'ffmpeg.exe')) {

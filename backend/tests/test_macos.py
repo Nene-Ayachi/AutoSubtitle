@@ -20,6 +20,7 @@ def test_platform_paths(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize('available', [True, False])
 def test_apple_hardware_only_advertises_working_encoders(monkeypatch, available):
+    monkeypatch.setitem(sys.modules, 'mlx.core', None)
     calls = []
     def run(args, **kwargs):
         calls.append(args)

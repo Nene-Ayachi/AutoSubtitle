@@ -22,7 +22,7 @@ class TranscriptionRequest(BaseModel):
     media_id: str
     quality: Literal['fast', 'balanced', 'quality'] = 'balanced'
     model: Literal['small', 'medium', 'large-v3-turbo', 'large-v3'] | None = None
-    device: Literal['auto', 'cuda', 'cpu'] = 'auto'
+    device: Literal['auto', 'cuda', 'metal', 'cpu'] = 'auto'
     compute_type: Literal['auto', 'float16', 'int8_float16', 'int8', 'float32'] = 'auto'
     language: Literal['zh', 'ja', 'en'] | None = None
     beam_size: int = Field(default=5, ge=1, le=10)

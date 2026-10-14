@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/../.."
 if [[ "$(uname -s)" != Darwin || "$(uname -m)" != arm64 ]]; then
   echo '需要 Apple Silicon macOS；请关闭终端的 Rosetta 模式。' >&2
   exit 1
@@ -20,6 +20,6 @@ fi
 .venv-macos/bin/python -c 'import platform,sys; assert platform.machine() == "arm64" and sys.version_info[:2] == (3,12), "请检查已有 .venv-macos 的架构和版本"'
 .venv-macos/bin/python -m pip install -r backend/requirements.txt
 (cd frontend && npm ci && npm run build)
-chmod +x Start-MediaTool.command Stop-MediaTool.command
-.venv-macos/bin/python scripts/start_macos.py --check
-echo '安装完成。双击 Start-MediaTool.command 启动；首次识别需要下载所选模型。'
+chmod +x scripts/macos/Start-MediaTool.command scripts/macos/Stop-MediaTool.command
+.venv-macos/bin/python scripts/macos/start.py --check
+echo '安装完成。双击 scripts/macos/Start-MediaTool.command 启动；首次识别需要下载所选模型。'

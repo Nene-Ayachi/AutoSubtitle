@@ -14,6 +14,8 @@ class TranscriptionService:
         self.key = None
 
     def unload(self):
+        if self.model is not None and hasattr(self.model, 'close'):
+            self.model.close()
         self.model = None
         self.key = None
         gc.collect()
@@ -24,13 +26,15 @@ class TranscriptionService:
         from faster_whisper import WhisperModel
         hw = hardware_service.info()
         control.check()
-        device = ('cuda' if hw['cuda'] else 'cpu') if request.device == 'auto' else request.device
+        device = ('cuda' if hw['cuda'] else ('metal' if hw.get('metal') else 'cpu')) if request.device == 'auto' else request.device
+        if device == 'metal' and not hw.get('metal'):
+            raise ValueError('Metal 不可用；需要 Apple Silicon 和 MLX，请重新安装便携包或运行 scripts/macos/Setup-MediaTool.command 或选择 CPU')
         model, preset_compute = PRESETS[request.quality]
         model = request.model or model
         compute = request.compute_type
         precision_notice = None
         if compute == 'auto':
-            compute = preset_compute if device == 'cuda' else 'int8'
+            compute = preset_compute if device == 'cuda' else ('float16' if device == 'metal' else 'int8')
             supported = hw['compute_types'][device]
             if compute not in supported:
                 replacement = next((c for c in ('int8_float16', 'float16', 'int8', 'float32') if c in supported), None)
@@ -40,6 +44,8 @@ class TranscriptionService:
                     compute = replacement
         if compute not in hw['compute_types'][device]:
             raise ValueError(f'{device} 不支持 {compute}，请选择自动或可用精度')
+        if device == 'metal' and request.beam_size != 1:
+            precision_notice = 'Metal / MLX 不支持 Beam Search，使用贪心解码（Beam Size 1）'
         key = (model, device, compute)
         raw_segments, language = [], request.language
         work = media['path'].parent / 'work' / control.task_id
@@ -54,7 +60,11 @@ class TranscriptionService:
                 try:
                     # Synchronous HF downloads/model constructors cannot be
                     # forcibly stopped safely. Keep cancelling until return.
-                    self.model = WhisperModel(model, device=device, compute_type=compute, download_root=str(MODELS), local_files_only=not request.allow_download)
+                    if device == 'metal':
+                        from app.services.metal_whisper import MetalWhisperModel
+                        self.model = MetalWhisperModel(model, compute_type=compute, download_root=MODELS, local_files_only=not request.allow_download)
+                    else:
+                        self.model = WhisperModel(model, device=device, compute_type=compute, download_root=str(MODELS), local_files_only=not request.allow_download)
                     self.key = key
                 except Exception as e:
                     control.check()
@@ -68,7 +78,8 @@ class TranscriptionService:
                 media_service.extract(media['path'], chunk, offset, CHUNK_SECONDS, control=control)
                 control.check()
                 update('transcribing', offset / media['duration'])
-                segments, detected = self.model.transcribe(str(chunk), language=language, beam_size=request.beam_size, vad_filter=request.vad, word_timestamps=request.word_timestamps)
+                options = {'check_cancel': control.check} if device == 'metal' else {}
+                segments, detected = self.model.transcribe(str(chunk), language=language, beam_size=request.beam_size, vad_filter=request.vad, word_timestamps=request.word_timestamps, **options)
                 control.check()
                 language = language or detected.language
                 iterator = iter(segments)

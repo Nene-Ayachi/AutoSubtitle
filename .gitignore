@@ -9,7 +9,7 @@ models/
 .test-work/
 *.tsbuildinfo
 .tools/
-releases/
+release/
 .venv-macos/
 .media-tool.lock
 stop.request

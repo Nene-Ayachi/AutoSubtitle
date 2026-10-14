@@ -59,9 +59,17 @@ def main():
         import numpy
         from app.services.hardware_service import info
         from app.config import MODELS
+        libraries = [av, ctranslate2, faster_whisper, numpy]
+        if sys.platform == 'darwin' and info().get('metal'):
+            try:
+                import mlx.core
+                import mlx_whisper
+                libraries.extend([mlx.core, mlx_whisper])
+            except ImportError:
+                pass
         print(json.dumps({'python': sys.version, 'executable': sys.executable,
                           'prefix': sys.prefix, 'models': str(MODELS),
-                          'libraries': {m.__name__: m.__file__ for m in (av, ctranslate2, faster_whisper, numpy)},
+                          'libraries': {m.__name__: m.__file__ for m in libraries},
                           'hardware': info()}, ensure_ascii=False, indent=2))
         return
     import logging
@@ -88,6 +96,8 @@ def main():
                 return
     threading.Thread(target=open_when_ready, daemon=True).start()
     stop_name = 'Stop-MediaTool.cmd' if sys.platform == 'win32' else 'Stop-MediaTool.command'
+    if sys.platform == 'darwin' and (ROOT / 'scripts/macos/Stop-MediaTool.command').is_file():
+        stop_name = 'scripts/macos/Stop-MediaTool.command'
     print(f'\nMedia Tool：{url}\n模型缓存：{ROOT / "models"}\n退出：按 Ctrl+C 或双击 {stop_name}。关闭浏览器不会停止后台任务。\n', flush=True)
     try:
         server.run(sockets=[sock])

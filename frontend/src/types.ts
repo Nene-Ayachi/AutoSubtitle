@@ -42,9 +42,10 @@ export interface Hardware {
   inference_note?: string;
   gpu: { name: string; memory_mb: number }[];
   cuda: boolean;
+  metal: boolean;
   ffmpeg: boolean;
   ffprobe: boolean;
-  compute_types: { cpu: string[]; cuda: string[] };
+  compute_types: { cpu: string[]; cuda: string[]; metal: string[] };
   encoders: string[];
   warnings: string[];
 }

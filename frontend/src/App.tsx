@@ -261,14 +261,8 @@ export default function App() {
   };
   const text = plain(cues),
     active = cues.find((c) => time >= c.start && time < c.end);
-  const supported =
-    hw?.compute_types[
-      device === "auto"
-        ? hw.cuda
-          ? "cuda"
-          : "cpu"
-        : (device as "cpu" | "cuda")
-    ] || [];
+  const activeDevice = device === "auto" ? (hw?.cuda ? "cuda" : hw?.metal ? "metal" : "cpu") : device;
+  const supported = hw?.compute_types[activeDevice as "cpu" | "cuda" | "metal"] || [];
   const edit = (id: number, key: "text" | "start" | "end", value: string) => {
     setCues((old) =>
       old.map((c) =>
@@ -417,6 +411,7 @@ export default function App() {
             <MenuItem value="cuda" disabled={!hw?.cuda}>
               CUDA
             </MenuItem>
+            <MenuItem value="metal" disabled={!hw?.metal}>Metal GPU（Apple Silicon）</MenuItem>
             <MenuItem value="cpu">CPU</MenuItem>
           </TextField>
         </Stack>
@@ -467,9 +462,10 @@ export default function App() {
               <TextField
                 label="Beam Size"
                 type="number"
-                value={beam}
+                value={activeDevice === "metal" ? 1 : beam}
                 onChange={(e) => setBeam(Number(e.target.value))}
-                disabled={locked}
+                disabled={locked || activeDevice === "metal"}
+                helperText={activeDevice === "metal" ? "MLX 使用贪心解码" : undefined}
                 slotProps={{ htmlInput: { min: 1, max: 10 } }}
                 fullWidth
               />
@@ -527,7 +523,7 @@ export default function App() {
                       device,
                       compute_type: compute,
                       language: language === "auto" ? null : language,
-                      beam_size: beam,
+                      beam_size: activeDevice === "metal" ? 1 : beam,
                       vad,
                       word_timestamps: words,
                       allow_download: allowDownload,

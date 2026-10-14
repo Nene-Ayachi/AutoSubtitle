@@ -6,7 +6,7 @@
 
 全流程取消（2026-10-09）：常规测试 65 passed/1 GPU opt-in skipped；单独启用真实 GPU 取消测试通过。覆盖队列、模型准备、惰性 next 推理、字幕处理、结果发布竞态、流式上传断连/正常上传、真实 FFmpeg 音频提取中断、数据保留与重试。真实 RTX 5090 D v2 的 small/float16 在在途 Segment 推理期间取消，不继续下一段，不发布部分结果。正常 CPU/GPU 识别、编辑、TXT/SRT 和三种视频编码导出通过，前端构建通过。HF 实际长下载和浏览器大文件中点取消尚未实测；同步模型准备仅安全等待。详情见 [全流程取消说明](docs/TASK_CANCELLATION.md)。
 
-Windows 便携版（2026-10-09）：生成 `releases/MediaTool-Portable-Windows-x64.zip`，约 1.40 GiB，自带 Python 3.12.15、CPU/GPU 依赖、FFmpeg 和前端，无模型。对实际压缩包执行隔离验证，清除开发环境 PATH/PYTHONPATH：中文/空格路径首次初始化、已初始化目录移动后重建运行时、模型目录保留、端口冲突回退、重复启动、静态首页/JS、真实 CPU/CUDA small 识别、校对、TXT/SRT、三种 MP4 编码、MKV 封装、取消/重试、正常退出和 session 清理均通过。51 项回归测试及前端构建通过。测试 small 只下载在隔离验证目录，项目 models 和发布包不含测试权重。报告位于 `.test-work/portable-verification/report.json`，说明见 [便携版构建与验证](docs/PORTABLE_BUILD.md)。尚未在另一台干净 Windows 电脑/虚拟机验收，也未测试自动打开浏览器的 UI 点击流程。
+Windows 便携版（2026-10-09）：生成 `release/MediaTool-Portable-Windows-x64.zip`，约 1.40 GiB，自带 Python 3.12.15、CPU/GPU 依赖、FFmpeg 和前端，无模型。对实际压缩包执行隔离验证，清除开发环境 PATH/PYTHONPATH：中文/空格路径首次初始化、已初始化目录移动后重建运行时、模型目录保留、端口冲突回退、重复启动、静态首页/JS、真实 CPU/CUDA small 识别、校对、TXT/SRT、三种 MP4 编码、MKV 封装、取消/重试、正常退出和 session 清理均通过。51 项回归测试及前端构建通过。测试 small 只下载在隔离验证目录，项目 models 和发布包不含测试权重。报告位于 `.test-work/portable-verification/report.json`，说明见 [便携版构建与验证](docs/PORTABLE_BUILD.md)。尚未在另一台干净 Windows 电脑/虚拟机验收，也未测试自动打开浏览器的 UI 点击流程。
 
 视频导出取消：全部 51 项测试通过，含真实 FFmpeg 的 MP4/MKV 取消、进程退出、临时文件清理、原视频/校对字幕/TXT/SRT 保留、重新导出、排队取消和重复取消，以及完成/失败竞态、强制终止故障及清理故障的受控测试。前端构建通过，真实 CPU 识别/编辑及三种 MP4 编码导出集成再次通过。浏览器点击流程、NVENC 运行中取消和实际 Windows 权限故障尚未实测，详见 [视频取消说明](docs/VIDEO_EXPORT_CANCEL.md)。
 

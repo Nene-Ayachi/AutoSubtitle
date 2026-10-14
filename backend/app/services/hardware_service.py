@@ -7,11 +7,26 @@ from app.services.media_service import run
 
 @functools.lru_cache(maxsize=1)
 def info():
-    result = {'gpu': [], 'cuda': False, 'compute_types': {'cpu': ['int8'], 'cuda': []}, 'ffmpeg': False, 'ffprobe': False, 'encoders': ['libx264'], 'warnings': []}
+    result = {'gpu': [], 'cuda': False, 'metal': False, 'compute_types': {'cpu': ['int8'], 'cuda': [], 'metal': []}, 'ffmpeg': False, 'ffprobe': False, 'encoders': ['libx264'], 'warnings': []}
     result['platform'] = sys.platform
     result['architecture'] = platform.machine()
     result['apple_silicon'] = sys.platform == 'darwin' and platform.machine().lower() == 'arm64'
-    result['inference_note'] = 'Apple Silicon · ARM CPU 识别（当前后端不支持 Metal GPU）' if result['apple_silicon'] else ''
+    result['inference_note'] = ''
+    if result['apple_silicon']:
+        try:
+            import mlx.core as mx
+            import mlx_whisper
+            if not mx.metal.is_available():
+                raise RuntimeError('Metal 设备不可用')
+            with mx.stream(mx.gpu):
+                probe = mx.array([1.0]) + 1
+                mx.eval(probe)
+            result['metal'] = True
+            result['compute_types']['metal'] = ['float16', 'float32']
+        except Exception as e:
+            result['warnings'].append(f'Metal 检测失败，自动使用 CPU；请重新安装便携包或运行 scripts/macos/Setup-MediaTool.command 安装 MLX：{e}')
+        result['inference_note'] = ('Apple Silicon · Metal GPU 识别（MLX）' if result['metal']
+                                    else 'Apple Silicon · ARM CPU 识别（Metal 不可用）')
     try:
         if sys.platform == 'darwin':
             raise RuntimeError('CUDA is not available on macOS')
@@ -43,7 +58,8 @@ def info():
                 result['encoders'].append(encoder)
             except Exception as e:
                 result['warnings'].append(f'{encoder} 实际编码检测未通过：{str(e)[:350]}')
-    result['recommended_model'] = 'large-v3-turbo' if result['cuda'] else 'small'
-    types = result['compute_types']['cuda'] if result['cuda'] else result['compute_types']['cpu']
+    result['recommended_model'] = 'large-v3-turbo' if result['cuda'] or result['metal'] else 'small'
+    result['recommended_device'] = 'cuda' if result['cuda'] else ('metal' if result['metal'] else 'cpu')
+    types = result['compute_types'][result['recommended_device']]
     result['recommended_compute'] = next((c for c in ('int8_float16', 'int8', 'float16', 'float32') if c in types), 'auto')
     return result

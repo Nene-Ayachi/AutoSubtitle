@@ -1,0 +1,71 @@
+.dropzone {
+  border: 2px dashed #c9d4e2;
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  background: #f8fafc;
+}
+.player {
+  position: relative;
+  background: #111;
+  display: flex;
+  justify-content: center;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.player video {
+  max-height: 440px;
+  width: 100%;
+}
+.player audio {
+  width: 100%;
+  background: #f4f4f4;
+}
+.subtitle {
+  position: absolute;
+  bottom: 60px;
+  left: 8%;
+  right: 8%;
+  text-align: center;
+  color: white;
+  font-size: 24px;
+  font-weight: 600;
+  white-space: pre-wrap;
+  pointer-events: none;
+  text-shadow:
+    2px 2px 2px black,
+    -2px -2px 2px black;
+}
+.cue-list {
+  max-height: 450px;
+  overflow: auto;
+  margin: 20px 0;
+}
+.cue {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #e6ebf1;
+}
+.cue.active {
+  background: #edf4ff;
+}
+.cue .MuiTextField-root {
+  width: 125px;
+}
+.cue .cue-text {
+  flex: 1;
+}
+.transcript {
+  white-space: pre-wrap;
+  font:
+    16px/1.9 "Segoe UI",
+    "Microsoft YaHei",
+    sans-serif;
+  background: #f8fafc;
+  padding: 24px;
+  border-radius: 8px;
+  max-height: 600px;
+  overflow: auto;
+}

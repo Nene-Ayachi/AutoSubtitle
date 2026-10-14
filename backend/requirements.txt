@@ -1,0 +1,9 @@
+fastapi==0.115.12
+uvicorn==0.34.2
+pydantic==2.11.4
+python-multipart==0.0.20
+faster-whisper==1.2.1
+ctranslate2==4.6.2
+av==16.0.1
+httpx==0.28.1
+pytest==8.3.5

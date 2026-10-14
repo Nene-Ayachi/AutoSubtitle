@@ -1,0 +1,16 @@
+node_modules/
+dist/
+__pycache__/
+.pytest_cache/
+*.pyc
+.env
+data/
+models/
+.test-work/
+*.tsbuildinfo
+.tools/
+releases/
+.venv-macos/
+.media-tool.lock
+stop.request
+logs/
